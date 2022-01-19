@@ -1,0 +1,8 @@
+test
+**/__pycache__
+**/tags
+.*
+!.gitignore
+build
+dist
+**/*.egg-info
