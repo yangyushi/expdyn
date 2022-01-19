@@ -4,31 +4,41 @@ import matplotlib.pyplot as plt
 
 
 """
-Generate random data
+Generate random data - ideal gas in 3d cubic box
 """
 
-dx = 1e-3
-n_frame = 100
+dx = 1e-2
+n_frame = 50
+n_particle = 100
+box = 10
 
-gas = [np.random.uniform(0, 10, (1000, 3))]
+gas = [  # a list of coordinates in different frames
+    np.random.uniform(0, box, (n_particle, 3))
+]
 for _ in range(n_frame - 1):
-    gas.append(gas[-1] + np.random.uniform(-dx, dx, (1000, 3)))
+    new = gas[-1] + np.random.uniform(-dx, dx, (n_particle, 3))
+    gas.append(new)
 
 
 """
-Link positions into trajectories
+Link positions into a list of trajectories
+
+Each trajectory is a tulpe (time, position), the time and position
+    are numpy arrays
 """
-trajs = expdyn.link(gas, dx=dx, method='trackpy')
+trajs = expdyn.link(gas, dx=dx * 2, method='trackpy')
 
 
 """
-Calculate the isf from trajectories
+Calculate the isf from trajectories. The error is the standard error,
+    calcualted as std / sqrt(N_particle)
 """
+sigma = 1.0
 isf, err = expdyn.get_isf_3d(
     trajs,
-    q=np.pi*2,  # wavenumber
-    length=100,  # maximum lag value,
-    sample=20,  # for each time point, the maximum of sample number
+    q=np.pi*2 / sigma,  # wavenumber
+    length=50,  # maximum lag value,
+    sample_num=20,  # for each time point, the maximum of sample number
 )
 
 
@@ -36,6 +46,8 @@ isf, err = expdyn.get_isf_3d(
 Plot
 """
 tau = np.arange(len(isf))
-plt.errorbar(tau, isf, err)
+plt.errorbar(tau, isf, err, marker='o', mfc='w')
+plt.xlabel("Lag Time / frame")
+plt.ylabel("ISF")
 plt.tight_layout()
 plt.show()
