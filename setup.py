@@ -17,9 +17,9 @@ setuptools.setup(
     url="https://github.com/yangyushi/expdyn",
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent",
+       "Operating System :: OS Independent",
     ],
-    package_dir={"": "expdyn"},  # location of Distribution package
-    packages=setuptools.find_packages(where="expdyn"),  # find import package
+    package_dir={"": "."},  # location of Distribution package
+    packages=setuptools.find_packages(where="."),  # find import package
     python_requires=">=3.5",
 )
