@@ -29,29 +29,6 @@ def get_trajectory(labels, frames, target: int):
     return time, positions
 
 
-@njit
-def get_trajectory_matrix(max_index, link_results):
-    """
-    Calculate the big boolean matrix in the shape of (max_index, time_points)\
-        to speed up the trajectory assembly procedure.
-
-    The element `traj_mat[i, t]` stores the index of the #i trajectory in time t.
-
-    The location of #i trajectory in time t is in `frames[t][ traj_mat[i, t] ]`.
-
-    Args:
-        max_index (int): the maximum index number assigned to the particles.
-        link_result (tuple): the (time_point, indices) pair for each frame.
-
-    Return:
-        np.ndarray: the matrix useful for the assembly of trajectory.
-    """
-    traj_mat = np.ones((max_index, len(link_results))) * -1
-    for t, indices in link_result:
-        for j, i in enumerate(indices):
-            traj_mat[i, t] = j
-
-
 class Trajectory():
     def __init__(self, time, positions, blur=None, velocities=None, blur_velocity=None):
         """
