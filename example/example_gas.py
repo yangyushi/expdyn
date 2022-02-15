@@ -1,16 +1,19 @@
+import sys
+sys.path.append("..")
 import expdyn
 import numpy as np
 import matplotlib.pyplot as plt
 
 
+np.random.seed(0)
 """
 Generate random data - ideal gas in 3d cubic box
 """
 
-dx = 1e-2
-n_frame = 50
-n_particle = 100
-box = 10
+dx = 1e-1
+n_frame = 200
+n_particle = 2000
+box = 100
 
 gas = [  # a list of coordinates in different frames
     np.random.uniform(0, box, (n_particle, 3))
@@ -26,7 +29,13 @@ Link positions into a list of trajectories
 Each trajectory is a tulpe (time, position), the time and position
     are numpy arrays
 """
-trajs = expdyn.link(gas, dx=dx * 2, method='trackpy')
+trajs = expdyn.link(gas, dx=dx*1.5, method='trackpy')
+trajs = [t for t in trajs if len(t[0]) > 2]
+
+
+for t in trajs[:5]:
+    plt.plot(*t[1].T[:2], marker='+')
+plt.show()
 
 
 """

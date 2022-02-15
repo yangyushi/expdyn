@@ -4,6 +4,7 @@ from scipy import ndimage
 from scipy.spatial.distance import cdist
 from numba import njit
 from tqdm import tqdm
+from numba.typed import List as nList
 
 
 @njit
@@ -26,6 +27,29 @@ def get_trajectory(labels, frames, target: int):
         elif found:
             return time, positions
     return time, positions
+
+
+@njit
+def get_trajectory_matrix(max_index, link_results):
+    """
+    Calculate the big boolean matrix in the shape of (max_index, time_points)\
+        to speed up the trajectory assembly procedure.
+
+    The element `traj_mat[i, t]` stores the index of the #i trajectory in time t.
+
+    The location of #i trajectory in time t is in `frames[t][ traj_mat[i, t] ]`.
+
+    Args:
+        max_index (int): the maximum index number assigned to the particles.
+        link_result (tuple): the (time_point, indices) pair for each frame.
+
+    Return:
+        np.ndarray: the matrix useful for the assembly of trajectory.
+    """
+    traj_mat = np.ones((max_index, len(link_results))) * -1
+    for t, indices in link_result:
+        for j, i in enumerate(indices):
+            traj_mat[i, t] = j
 
 
 class Trajectory():
@@ -741,34 +765,41 @@ class TrackpyLinker():
         positions.sort(key=lambda x: order_indice.tolist())
         return positions, ordered_time, labels
 
-    def __get_trajectory(self, value, link_result, positions, time_points, labels):
-        with_label = False
-        if isinstance(labels, type(None)):
-            traj = [[], []]
-        else:
-            traj = [[], [], []]
-            with_label = True
+    def __get_trajectories(self, link_result, positions, time_points, labels):
+        total_labels = []
         for frame in link_result:
             frame_index, link_labels = frame
-            if value in link_labels:
-                number_index = link_labels.index(value)
-                traj[0].append(time_points[frame_index])
-                traj[1].append(positions[frame_index][number_index])
-                if with_label:
-                    current_label = labels[frame_index][link_labels.index(value)]
-                    traj[2].append(current_label)
-        traj[0] = np.array(traj[0])
-        traj[1] = np.array(traj[1])
-        return traj
+            total_labels.append(link_labels)
 
-    def __get_trajectories(self, link_result, positions, time_points, labels):
+        max_value = np.hstack(total_labels).max()
+        labels_numba = nList()
+        frames_numba = nList()
+        for label, frame in zip(total_labels, positions):
+            labels_numba.append(np.array(label))
+            frames_numba.append(frame)
+
+        trajectories = []
+        for target in tqdm(range(max_value + 1)):  # find the trajectory for every label
+            result = get_trajectory(labels_numba, frames_numba, target)
+            time, positions = result
+            trajectories.append(
+                (np.array(time), np.array(positions))
+            )
+        return trajectories
+
+    def __get_trajectories_slow(self, link_result, positions, time_points, labels):
+        """
+        this method is slow, will be removed in the future
+        """
         trajectories = []
         total_labels = []
         for frame in link_result:
             frame_index, link_labels = frame
             total_labels.append(link_labels)
-        for value in set(np.hstack(total_labels)):
-            traj = self.__get_trajectory(value, link_result, positions, time_points, labels)
+        for value in tqdm(set(np.hstack(total_labels))):
+            traj = self.__get_trajectory(
+                value, link_result, positions, time_points, labels
+            )
             trajectories.append(traj)
         return trajectories
 
